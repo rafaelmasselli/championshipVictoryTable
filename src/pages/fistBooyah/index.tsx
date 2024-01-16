@@ -22,7 +22,11 @@ export function FistBooyah() {
   const [selectedPosition, setSelectedPosition] = useState("");
 
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
-  const [formDataList, setFormDataList] = useState<FormData[]>([]);
+  const [formDataList, setFormDataList] = useState<FormData[]>(() => {
+    const storedData = localStorage.getItem("formDataList");
+    return storedData ? JSON.parse(storedData) : [];
+  });
+
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
   function displayModal(title: string, description: string) {
@@ -32,6 +36,17 @@ export function FistBooyah() {
   }
 
   function removeLine(id: string) {
+    setDisabledOptions((prevDisabledOptions) => {
+      const index = formDataList.findIndex((item) => item.id === id);
+      const positionToRemove = formDataList[index].position;
+
+      const newDisabledOptions = prevDisabledOptions.filter(
+        (position) => position !== positionToRemove
+      );
+
+      return newDisabledOptions;
+    });
+
     setFormDataList((prevList) => prevList.filter((item) => item.id !== id));
   }
 
@@ -47,8 +62,9 @@ export function FistBooyah() {
       removeLine(id);
     }
   }
+
   useEffect(() => {
-    try {
+    const fetchData = async () => {
       const storedData = localStorage.getItem("formDataList");
       if (storedData) {
         const storedFormDataList: FormData[] = JSON.parse(storedData);
@@ -58,15 +74,13 @@ export function FistBooyah() {
         );
         setDisabledOptions(disabledPositions);
       }
-    } catch (error) {
-      console.error("Erro ao fazer o parse do JSON:", error);
-    }
+    };
+    fetchData();
   }, []);
 
   useEffect(() => {
     localStorage.setItem("formDataList", JSON.stringify(formDataList));
   }, [formDataList]);
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
@@ -226,44 +240,46 @@ export function FistBooyah() {
             </tr>
           </thead>
           <tbody>
-            {formDataList.map((formData, index) => (
-              <tr
-                key={index}
-                className={`${
-                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } border-b dark:bg-gray-800 dark:border-gray-700`}
-              >
-                <th
-                  scope="row"
-                  className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+            {formDataList
+              .sort((a, b) => b.punctuation - a.punctuation) // Ordena em ordem decrescente com base na pontuação
+              .map((formData, index) => (
+                <tr
+                  key={index}
+                  className={`${
+                    index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  } border-b dark:bg-gray-800 dark:border-gray-700`}
                 >
-                  {formData.nome}
-                </th>
-                <td className="px-6 py-4">{formData.abates}</td>
-                <td className="px-6 py-4">{formData.position}</td>
-                <td className="px-6 py-4">{formData.punctuation}</td>
-                <td className="px-6 py-4">
-                  <button
-                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                    onClick={() => {
-                      editLineStatus(formData.id);
-                    }}
+                  <th
+                    scope="row"
+                    className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                   >
-                    Editar
-                  </button>
-                </td>
-                <td className="px-6 py-4">
-                  <button
-                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                    onClick={() => {
-                      removeLine(formData.id);
-                    }}
-                  >
-                    Excluir
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    {formData.nome}
+                  </th>
+                  <td className="px-6 py-4">{formData.abates}</td>
+                  <td className="px-6 py-4">{formData.position}</td>
+                  <td className="px-6 py-4">{formData.punctuation}</td>
+                  <td className="px-6 py-4">
+                    <button
+                      className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                      onClick={() => {
+                        editLineStatus(formData.id);
+                      }}
+                    >
+                      Editar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                      onClick={() => {
+                        removeLine(formData.id);
+                      }}
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
